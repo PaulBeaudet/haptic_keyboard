@@ -4,8 +4,8 @@ void serialInterfaceUp()
 {
   Serial.begin(9600); // COM with Bluefruit EZ key HID or pyserial
   Keyboard.begin();   //begin wired via usb keyboard
-  Mouse.begin();      //begin wired mouse interactions
-  Serial1.begin(9600);// possible communication with Bluefruit 
+  //Mouse.begin();      //begin wired mouse interactions
+  //Serial1.begin(9600);// possible communication with Bluefruit
 }
 
 void keyOut(byte keyPress)
@@ -33,10 +33,7 @@ void comboPress(byte modifiers, byte key1, byte key2)
   if(key2){Keyboard.press(key2);}
 }
 
-//spacers to overlook Yun features
-boolean serialBowl(boolean null){return false;}
-boolean terminalToggle(boolean null){return false;}
-
+/*
 //mousey stuff
 void mouseClick(byte click)
 {
@@ -82,7 +79,7 @@ void EEPROMsetup()
 void mouseMovement()
 {
   static unsigned long time = 0;
-  
+
   if(millis() - time > REFRESH_TIME)
   {//EEPROM the calibration data so it is centered every boot
     int xReading = analogRead(MOUSE_X_PIN);
@@ -91,12 +88,12 @@ void mouseMovement()
     int xmax = word(EEPROM.read(XMAX),EEPROM.read(XMAX +1));
     int ymin = word(EEPROM.read(YMIN),EEPROM.read(YMIN +1));
     int ymax = word(EEPROM.read(YMAX),EEPROM.read(YMAX +1));
-    
-    if(xReading < xmin){writeReading(xReading, XMIN);} //4 directions of 
+
+    if(xReading < xmin){writeReading(xReading, XMIN);} //4 directions of
     else if(xReading > xmax){writeReading(xReading, XMAX);} //Calibration
     else if(yReading < ymin){writeReading(yReading, YMIN);}
     else if(yReading > ymax){writeReading(yReading, YMAX);}
-    else //outside of calibration cases 
+    else //outside of calibration cases
     {
       char xMapped = map(xReading, xmin, xmax, RANGE, -RANGE);
       char yMapped = map(yReading, ymin, ymax, -RANGE, RANGE);
@@ -110,3 +107,4 @@ void mouseMovement()
     time = millis();
   }
 }
+*/

@@ -146,6 +146,7 @@ byte getFrame(byte frame, byte type = 0)
 }
 
 // ----------------- Key presses --------------
+/*
 const byte BlueConvert[] PROGMEM =
 {// on the ASCII table start from space and go to tilde
   44, 30, 52, 32, 33, 34, 36, 52, 38, 39, 37, 46, 54, 45, 55, 56,
@@ -181,6 +182,7 @@ boolean needShift(byte letter)// does need shift?
   }
   return false;
 }
+*/
 
 const byte SpecialToKBD[] PROGMEM =
 {//follows system definition up to NUM_LOCK

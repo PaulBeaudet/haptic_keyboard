@@ -122,6 +122,7 @@ boolean streamOut(byte letter){  // return true when qued letter is finished
 }
 
 //-- higher level message functions
+/*
 boolean messageHandlr(byte mode)
 {
   static char lineBuffer[LINE_SIZE]={};
@@ -239,6 +240,7 @@ void removeThisMany(int numberOfChars)
 { // remove a numberOfChars...
   for(int i=0;i<numberOfChars;i++){keyOut(BACKSPACE);}
 }
+*/
 
 //----------------adjusting settings with pontentiometer---------
 // set ADJUST_POT in pin_definitions.h
