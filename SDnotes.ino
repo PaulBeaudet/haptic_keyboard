@@ -11,6 +11,9 @@ void setupSD()
   pinMode(SS, OUTPUT);
   if(SD.begin(SS)){
     workingDir = SD.open("/");
+    char bkmrks[] = "MARKS.TXT";
+    //SD.remove(bkmrks); //uncoment to start bookmarks from scratch
+    File marks = SD.open(bkmrks, FILE_WRITE); marks.close(); // create if not
   }
 }
 
@@ -47,13 +50,10 @@ File carosel(byte request) throw(){  // centralizes file system opperations
 }
 
 unsigned long bookmarkIt(char* filename, unsigned long bookmark){
-  Serial.println("GI");
   char bkmrks[] = "MARKS.TXT";
   //File marks = SD.open(bkmrks, FILE_WRITE); marks.close(); // create if not
   unsigned long foundMark = 0;
-  Serial.println("#"); // ---------------!!!!!!!!
   unsigned long existingEntry = findString(bkmrks, filename);
-  Serial.print("ex-");
   Serial.println(existingEntry); //---------------!!!!!!!!
   if(bookmark){ //in the case of a bookmark write mark to sd
     writeALong(bkmrks, filename, existingEntry, bookmark);
@@ -66,14 +66,20 @@ unsigned long bookmarkIt(char* filename, unsigned long bookmark){
 void writeALong(char* file, char* name, unsigned long pos, unsigned long num){
   //timeCheck(10); // let run for x milliseconds
   File target = SD.open(file, FILE_WRITE);
-  if(pos){             // edit entry
-    target.seek(pos);  // seek to edit pos
-  }else{               // new entry
-    target.print(name);
-    target.print('-');
+  if(pos){              // edit entry
+    target.seek(pos);   // seek to edit pos
+  }else{                // new entry
+    target.print(name); // denote name of file
+    target.print('-');  // make it human parsible
   }
-  if(num){target.println(num);}
-  target.close();
+  if(num){
+    target.println(num);               // this overwrites bytes after pos
+    if(!pos){                          // given that this is a new entry
+      for(byte i = 0; i < 9; i++){target.print('*');} // add chars to bleed into
+      target.println();                // yes this is crusty, but it will work
+    }
+  }
+  target.close(); // open one file at a time or this will crash your $h!T!
 }
 
 
@@ -124,6 +130,43 @@ unsigned long findString(char* filename, char* string){
 }
 
 // ******** Command Functions *********
+byte resumeRead(byte print){    // resume reading document
+  static File myFile = SD.open("Alice.txt");
+  static boolean printing = false;
+
+  if(print){
+    printing = !printing;
+    unsigned long mark = myFile.position();
+    if(printing){
+      myFile = carosel('c');
+      char* name = myFile.name();
+      myFile.close();
+      mark = bookmarkIt(name, 0);
+      myFile = SD.open(name);
+      myFile.seek(mark);
+    } else {
+      char* name = myFile.name();
+      myFile.close();
+      bookmarkIt(name, mark);
+      return 0;     // send quit signal
+    }
+  }
+
+  if(printing){
+    if(streamOut(MONITOR_MODE)){
+      byte nextLetter = myFile.read();
+      if(nextLetter == 0xff){
+        myFile.close();
+        printing = false;
+        return 0;                 //end signal
+      } else {
+        streamOut(nextLetter);
+      }
+    }
+  }
+  return 'r';
+}
+
 byte cat(byte print){
   static File myFile = SD.open("Alice.txt"); // find a default file
   static boolean printing = false;
@@ -174,6 +217,7 @@ byte currentFile(byte print){
     if(streamOut(MONITOR_MODE)){
       File current = carosel(MONITOR_MODE);
       char* name = current.name();
+      current.close();
       if(name[index]){
         streamOut(name[index]);
         index++;
@@ -235,6 +279,7 @@ void PASH(byte cmd){                               // PASH activity toggle
 
     if      (activeCMD == 'c'){feedback = cat(cmd);}
     else if (activeCMD == 'n'){feedback = currentFile(cmd);}
+    else if (activeCMD == 'r'){feedback = resumeRead(cmd);}
     else if (activeCMD == 'z'){feedback = welcomePASH(cmd);}
     else {activeCMD = 0;} // cmd not found -> quit
 
