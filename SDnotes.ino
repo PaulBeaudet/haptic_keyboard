@@ -47,12 +47,14 @@ File carosel(byte request) throw(){  // centralizes file system opperations
 }
 
 unsigned long bookmarkIt(char* filename, unsigned long bookmark){
+  Serial.println("GI");
   char bkmrks[] = "MARKS.TXT";
-  File marks = SD.open(bkmrks, FILE_WRITE); marks.close(); // create if not
+  //File marks = SD.open(bkmrks, FILE_WRITE); marks.close(); // create if not
   unsigned long foundMark = 0;
-
+  Serial.println("#"); // ---------------!!!!!!!!
   unsigned long existingEntry = findString(bkmrks, filename);
-  Serial.println(existingEntry);
+  Serial.print("ex-");
+  Serial.println(existingEntry); //---------------!!!!!!!!
   if(bookmark){ //in the case of a bookmark write mark to sd
     writeALong(bkmrks, filename, existingEntry, bookmark);
   }else{
@@ -77,41 +79,48 @@ void writeALong(char* file, char* name, unsigned long pos, unsigned long num){
 
 unsigned long findALong(char* filename, unsigned long pos){
   File target = SD.open(filename);
-  target.seek(pos);
+  if(target){Serial.println("FL");}
+  target.seek(pos);                 // assumes addres is correct
 
   byte index = 0;                   // denotes highest place
-  //char longNumber[11];              // up to the billions plus null
+  char longNumber[11];              // up to the billions plus null
   while(target.available()){        // so long as we can read chars
     char number = target.read();    // read next possible number
-    Serial.println(number);
+    Serial.print("ps-");
+    Serial.println(number);        //----!!!!!!!!!!
     if(number < 58 && number > 47){ // given we are dealing with numbers
-      filename[index] = number;   // add the numbers to the array
+      longNumber[index] = number;   // add the numbers to the array
       index++;                      // increment index
     } else {break;} // if not a number basically expecting cr/lf
   }
   target.close();
-  filename[index] = '\0'; // Null terminate
-  return atol(filename);
+  Serial.println("AC");
+  longNumber[index] = '\0'; // Null terminate
+  return atol(longNumber);
 }
 
 unsigned long findString(char* filename, char* string){
   File target = SD.open(filename);
+  if(target){Serial.println("FS");}
 
+  unsigned long pos = 0;
   byte matched = 0;
   while(target.available()){
     if(string[matched] == target.read()){
-      Serial.println(target.position());
+      Serial.print("*");
+      Serial.println(target.position()); //----------!!!!
       if(matched + 1 == strlen(string)){
-        unsigned long pos = target.position();
-        target.close();
-        return pos + 1;
+        pos = target.position() + 1;
+        Serial.println("!");
+        break;
       }
       matched++;
     }
     else{matched = 0;}
   }
   target.close();
-  return 0;
+  Serial.println("AC");
+  return pos;
 }
 
 // ******** Command Functions *********
@@ -119,16 +128,23 @@ byte cat(byte print){
   static File myFile = SD.open("Alice.txt"); // find a default file
   static boolean printing = false;
 
+  char* name = myFile.name();
   if(print == 'c' || print == 'q' || print == 'e'){
     printing = !printing;
     if(printing){myFile = carosel('c');}
     else{
-      if(print == 'e'){bookmarkIt(myFile.name(), myFile.position());}
+      unsigned long pos = myFile.position();
       myFile.close();
+      if(print == 'e'){bookmarkIt(name, pos);}
       return 0;
     }
   }
-  if(print == 'b'){myFile.seek(bookmarkIt(myFile.name(), 0));}
+  if(print == 'b'){
+    myFile.close();
+    unsigned long pos= bookmarkIt(name, 0);
+    myFile = SD.open(name);
+    myFile.seek(pos);
+  }
 
   if(printing){
     if(streamOut(MONITOR_MODE)){
