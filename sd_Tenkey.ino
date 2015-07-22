@@ -11,66 +11,48 @@
 #include <EEPROM.h>         // store mouse calibration
 #include "keyDefinitions.h" // define key numbers for various output types
 #include "pin_definitions.h"// Pin arrangements per type of board
-// board named file with your board found in "hardwareOptions" folder
-// eg -> yun.ino <-with-> hardwareOptions/uno.ino
 
 #define MONITOR_BUTTONS 33 // signal to monitor buttons
 #define MONITOR_MODE   0   // goto default behavior for multi-mode functions
 #define TRIGGER        1   // set enter key to press : enterBehavior()
 #define DEFAULT_MODE   1   // potentiometer check
 #define NUMBERS_MODE   2   // outputFilter: Numbers
-//#define RECORD_CAT     2   // cat or record or record cat
 #define ADJUST_PWM     2   // potentiometer()
 #define ADJUST_TIMING  3   // potentiometer()
-//#define LINE_SIZE      80  // cause why should a line be longer?
 
-void setup()//setup the needed hardware
-{
+void setup(){          //setup the needed hardware
   pagersUp();          // pagers.ino: brings vibrating motor interface up
   buttonUp();          // buttons.ino: brings button polling intreface up
   serialInterfaceUp(); // yun/uno/leo.ino: brings serial output interface/s up
-  //EEPROMsetup();       // yun/uno/leo.ino: manages first calibration session
   setupSD();           // bring up file system for notes
 }
 
-void loop()
-{
-  mainIOroutine();            // handles key input and output
-  feedbackAndRelease();       // controls pager feedback and release control
-  //messageHandlr(MONITOR_MODE);// handles incoming messages
-  //listenForMessage();         // grab potential messages over usb serial
-  potentiometer(MONITOR_MODE);// monitor potentiometer: pagers.ino
-  //mouseMovement();            // monitor joystick for mouse actions
-  PASH(MONITOR_MODE);         // check for sd PASH OUTPUT
+void loop(){
+  mainIOroutine();               // handles key input and output
+  if(noUserMessages()){                // as long as something else isn't playing
+    feedbackAndRelease();        // controls pager feedback and release
+  }
+  potentiometer(MONITOR_MODE);   // monitor potentiometer: pagers.ino
+  PASH(MONITOR_MODE);            // check for sd PASH OUTPUT
 }
 
 //---- main chord interpertation flow control ----
-byte mainIOroutine()
-{
+void mainIOroutine(){
   byte pressState = chordLoop(); // captures the current state of the buttons
-  if(pressState)
-  {
-    if (pressState < 128)      // narrows values to letters
-    {
-      //recordHandlr(pressState);// records presses to messageHandlr given active
-      keyOut(pressState);      // actuate the press as a keystroke
-      PASH(pressState);        // give PASH input if active
-      //messageHandlr(TRIGGER);  // letters interupt messages
-    }
-    //else if(pressState > 159){mouseClick(pressState);}//special cases
-    else{macros(pressState);} // in all other cases check for macros
-  } // macros are exempt from interupting messageHandlr
-  return pressState;
+  if(pressState){                // given a press event
+    if (pressState < 128){       // narrows values to letters
+      keyOut(pressState);        // actuate the press as a keystroke
+      PASH(pressState);          // give PASH input if active
+    } else{macros(pressState);}  // in all other cases check for macros
+  }
 }
 
-byte chordLoop()
-{
+byte chordLoop(){
   static byte doubleActuation = 0;
 
   byte actuation = 0;            // establish var that will be returned
-  if(doubleActuation)            // backspace needed to be sent last iteration
-  {                              // double actuation holds the intended char
-    actuation = doubleActuation;
+  if(doubleActuation){           // backspace needed to be sent last iteration
+    actuation = doubleActuation; // double actuation holds the intended char
     doubleActuation = 0;
     return actuation;
   }
@@ -79,13 +61,10 @@ byte chordLoop()
   int chord = trueChord(MONITOR_MODE); // monitor chord posibilities
   byte pressState = patternToChar(chord);
   byte hold = 0;
-  if(doubleActuation = doubleToASCII(doubleEvent(pressState)))
-  {
+  if(doubleActuation = doubleToASCII(doubleEvent(pressState))){
     actuation = BACKSPACE;
     hold = doubleActuation;
-  }
-  else if(pressState)
-  {
+  } else if(pressState){
     actuation = pressState;
     hold = pressState;
   }
@@ -99,47 +78,28 @@ byte chordLoop()
 }
 
 //---- feedback & state handling ----
-void feedbackAndRelease()
-{
+void feedbackAndRelease(){
   static boolean held = false;
   // general press hold, for holdstates see conversions.ino -> heldASCII()
   int currentState = buttonState(MONITOR_BUTTONS);
-  if( held && currentState == 0 ) //at the moment of a release
-  {
-    if(vibInactive()){patternVibrate(0);}
+  if( held && currentState == 0 ){ //at the moment of a release
+    patternVibrate(0);
     releaseKey();
-    //mouseRelease(); //he wants to be free!
     held = false;
-  }
-  else if(patternToChar(currentState))
-  { // if that state is a pattern
+  }else if(patternToChar(currentState)){ // if that state is a pattern
     patternVibrate(currentState);
     held = true;
   }
 }
 
-boolean vibInactive() //check other function controling vibrators
-{ // extended AND opperation for readability
-  //if(messageHandlr(MONITOR_MODE)){return false;} // if message mode is printing
-  return true; // as long as everything is inactive return true
-}
-
 //---- Special macro functions ----
-void macros(byte letter)
-{
+void macros(byte letter){
   if     (letter == 'a' + SPACEBAR){convertionMode(TRIGGER);} // toggle numbers
-  /*else if(letter == 'b' + SPACEBAR) // play message buffer
-  {
-    if(recordHandlr(MONITOR_MODE)){;}
-    else{messageHandlr(RECORD_CAT);}
-  }*/
   else if(letter == 'd' + SPACEBAR){PASH(TRIGGER);}
-  //else if(letter == 'h' + SPACEBAR){alphaHint();} // play alphabetical hint
   else if(letter == 'i' + SPACEBAR){potentiometer(ADJUST_PWM);} // Toggle to pwm
   else if(letter == 'j' + SPACEBAR){comboPress(LEFT_ALT,0,0);}
   else if(letter == 'k' + SPACEBAR){keyOut(letter);} // toggle keyboard mode
   else if(letter == 'l' + SPACEBAR){comboPress(LEFT_CTRL|LEFT_ALT,0,0);}
   else if(letter == 'p' + SPACEBAR){potentiometer(DEFAULT_MODE);} // show value
-  //else if(letter == 'r' + SPACEBAR){recordHandlr(TRIGGER);} // start recording
   else if(letter == 's' + SPACEBAR){potentiometer(ADJUST_TIMING);} // toggle
 }
