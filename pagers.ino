@@ -65,7 +65,6 @@ boolean hapticMessage(byte letter, int spacing = 0)
       ptimeCheck(timing);          // start the timer for specified durration
       patternVibrate(validPatern); // signal the pagers to vibrate
       vibActive = true;            // signal true for to user message
-      Serial.println("t on");
       animated = false;            // this is a non-animated pattern
     }
     else if(byte validAnimation = getFrame(0, letter))
@@ -74,7 +73,6 @@ boolean hapticMessage(byte letter, int spacing = 0)
       ptimeCheck(adjustedTime/NUMPAGERS);  // set frame durration (total/frames)
       patternVibrate(validAnimation);      // vibrate first frame
       vibActive = true;                    // signal true to a to user message
-      Serial.println("A on");
       animated = true;                     // This is an animation
     }                                      // invalid entries are skipped
     return false; // why bother checking time... we just set it
@@ -94,7 +92,6 @@ boolean typicalLetter(int timing)
     {               // this case allows for a pause after "display"
       touchPause=!touchPause; // reset stage
       vibActive = false;      // set 'to user message' back to false
-      Serial.println("t off");
       return true;  // Send confirmation this letter has been "played"
     }
     else                      // durring the letter buzz phase
@@ -120,7 +117,6 @@ boolean animatedProcess(int timing)
       getFrame(0,TRIGGER); // reset framer
       patternVibrate(0);   // turn pagers off
       vibActive = false;    // signal end of activity
-      Serial.println("A OFF");
       return true;         // animation complete
     }
     patternVibrate(getFrame(frame));       // start to play frame

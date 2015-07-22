@@ -4,54 +4,50 @@
 #include <SPI.h>
 #include <SD.h>
 
-File workingDir;
+char bkmrks[] = "MARKS.TXT";
 
 void setupSD()
 {
   pinMode(SS, OUTPUT);
   if(SD.begin(SS)){
-    workingDir = SD.open("/");
-    char bkmrks[] = "MARKS.TXT";
     //SD.remove(bkmrks); //uncoment to start bookmarks from scratch
-    File marks = SD.open(bkmrks, FILE_WRITE); marks.close(); // create if not
+    //File marks = SD.open(bkmrks, FILE_WRITE); marks.close(); // create if not
+    workingFile(TRIGGER); // que up first file
   }
 }
 
-File carosel(byte request) throw(){  // centralizes file system opperations
-  // static File workingDir = SD.open("/");
-  static File nextFile = workingDir.openNextFile();
-  static byte index = 0;
-  static byte markedIndex = 0;
-  static byte highestIndex = 0;
+// return a pointer to the name of the current file
+char* workingFile(boolean next){ // merry go round style excluding directories
+  static File workingDirectory = SD.open("/");
+  static char fileCurrent[13];  // store the name of the file instead of the file
 
-  if(request == 'n'){
-    nextFile.close();
-    nextFile = workingDir.openNextFile();
-    if(nextFile){index++;}
-    else
-    {
-      workingDir.rewindDirectory();
-      nextFile = workingDir.openNextFile();
-      highestIndex = index;
-      index = 0;
+  if(next){
+    File next = workingDirectory.openNextFile();
+    if(!next){
+      workingDirectory.rewindDirectory();
+      next = workingDirectory.openNextFile();
     }
-  }
-  if(request == 'c'){
-    if(index){
-      markedIndex = index;
-      while(index != markedIndex - 1){carosel('n');}
-    } else { // in the case index is zero
-      carosel('n');
-      while(index != highestIndex){carosel('n');}
+    while(next.isDirectory()){                 // make sure this file isn't a dir
+      next.close();
+      next = workingDirectory.openNextFile();  //
+      if(!next){
+        workingDirectory.rewindDirectory();
+        next = workingDirectory.openNextFile();
+      }
     }
+    char* filename = next.name();
+    byte i = 0;
+    while(filename[i]){
+      fileCurrent[i] = filename[i];
+      i++;
+    }
+    fileCurrent[i] = '\0'; // null terminate
+    next.close();
   }
-
-  return nextFile;
+  return fileCurrent;
 }
 
 unsigned long bookmarkIt(char* filename, unsigned long bookmark){
-  char bkmrks[] = "MARKS.TXT";
-  //File marks = SD.open(bkmrks, FILE_WRITE); marks.close(); // create if not
   unsigned long foundMark = 0;
   unsigned long existingEntry = findString(bkmrks, filename);
   Serial.println(existingEntry); //---------------!!!!!!!!
@@ -85,39 +81,32 @@ void writeALong(char* file, char* name, unsigned long pos, unsigned long num){
 
 unsigned long findALong(char* filename, unsigned long pos){
   File target = SD.open(filename);
-  if(target){Serial.println("FL");}
   target.seek(pos);                 // assumes addres is correct
 
   byte index = 0;                   // denotes highest place
   char longNumber[11];              // up to the billions plus null
   while(target.available()){        // so long as we can read chars
     char number = target.read();    // read next possible number
-    Serial.print("ps-");
-    Serial.println(number);        //----!!!!!!!!!!
     if(number < 58 && number > 47){ // given we are dealing with numbers
       longNumber[index] = number;   // add the numbers to the array
       index++;                      // increment index
     } else {break;} // if not a number basically expecting cr/lf
   }
   target.close();
-  Serial.println("AC");
   longNumber[index] = '\0'; // Null terminate
   return atol(longNumber);
 }
 
 unsigned long findString(char* filename, char* string){
   File target = SD.open(filename);
-  if(target){Serial.println("FS");}
 
   unsigned long pos = 0;
   byte matched = 0;
   while(target.available()){
     if(string[matched] == target.read()){
-      Serial.print("*");
       Serial.println(target.position()); //----------!!!!
       if(matched + 1 == strlen(string)){
         pos = target.position() + 1;
-        Serial.println("!");
         break;
       }
       matched++;
@@ -125,42 +114,42 @@ unsigned long findString(char* filename, char* string){
     else{matched = 0;}
   }
   target.close();
-  Serial.println("AC");
   return pos;
 }
 
+char charOfCurrent(unsigned long position){
+  File myFile = SD.open(workingFile(MONITOR_MODE)); // open the workingFile
+  myFile.seek(position);       // seek to read position
+  char letter = myFile.read(); // read byte
+  myFile.close();              // close file; IMPORTANT
+  return letter;               // return letter for position
+}
+
 // ******** Command Functions *********
-byte resumeRead(byte print){    // resume reading document
-  static File myFile = SD.open("Alice.txt");
+byte resumeRead(byte print){
   static boolean printing = false;
+  static unsigned long mark = 0;
 
   if(print){
     printing = !printing;
-    unsigned long mark = myFile.position();
     if(printing){
-      myFile = carosel('c');
-      char* name = myFile.name();
-      myFile.close();
-      mark = bookmarkIt(name, 0);
-      myFile = SD.open(name);
-      myFile.seek(mark);
-    } else {
-      char* name = myFile.name();
-      myFile.close();
-      bookmarkIt(name, mark);
-      return 0;     // send quit signal
+      mark = bookmarkIt(workingFile(MONITOR_MODE), 0);
+    }else{
+      bookmarkIt(workingFile(MONITOR_MODE), mark);
+      while(!streamOut(MONITOR_MODE)){;} // block until last letter is done
+      return 0;
     }
   }
 
   if(printing){
     if(streamOut(MONITOR_MODE)){
-      byte nextLetter = myFile.read();
-      if(nextLetter == 0xff){
-        myFile.close();
-        printing = false;
-        return 0;                 //end signal
+      char letter = charOfCurrent(mark);
+      if(letter){
+        streamOut(letter);
+        mark++;
       } else {
-        streamOut(nextLetter);
+        printing = false;
+        return 0;
       }
     }
   }
@@ -168,65 +157,58 @@ byte resumeRead(byte print){    // resume reading document
 }
 
 byte cat(byte print){
-  static File myFile = SD.open("Alice.txt"); // find a default file
   static boolean printing = false;
+  static unsigned long position = 0;
 
-  char* name = myFile.name();
-  if(print == 'c' || print == 'q' || print == 'e'){
+  if(print){
     printing = !printing;
-    if(printing){myFile = carosel('c');}
-    else{
-      unsigned long pos = myFile.position();
-      myFile.close();
-      if(print == 'e'){bookmarkIt(name, pos);}
+    if(!printing){
+      position=0;
+      while(!streamOut(MONITOR_MODE)){;} // block until last letter is done
       return 0;
-    }
-  }
-  if(print == 'b'){
-    myFile.close();
-    unsigned long pos= bookmarkIt(name, 0);
-    myFile = SD.open(name);
-    myFile.seek(pos);
+    } // handle quit signal
   }
 
   if(printing){
     if(streamOut(MONITOR_MODE)){
-      byte nextLetter = myFile.read();
-      if(nextLetter == 0xff){
-        myFile.close();
-        printing = false;
-        return 0;                 //end signal
+      char letter = charOfCurrent(position); // get current letter
+      if(letter){                 // check if we are pointing to a letter
+        streamOut(letter);        // stream that letter out
+        position++;               // increment pointer to next letter
       } else {
-        streamOut(nextLetter);
+        printing = false;
+        position = 0;
+        return 0;
       }
     }
   }
   return 'c';
 }
 
-byte currentFile(byte print){
+byte fileNext(byte print){
   static boolean printing = false;
-  static byte index = 0;
+  //static byte index = 0;
+  static char* name = workingFile(MONITOR_MODE);
 
   if(print){
     printing = !printing;
-    if(!printing){return index=0;} // handle quit signal
+    if(printing){
+      name = workingFile(TRIGGER); //because why would a pointer to a static var change?
+    }else{
+      while(!streamOut(MONITOR_MODE)){;} // block until last message is done
+      return 0;
+    } // handle quit signal
   }
 
-  if(printing){                  // given TRIGGER start print next file
+  if(printing){
     if(streamOut(MONITOR_MODE)){
-      File current = carosel(MONITOR_MODE);
-      char* name = current.name();
-      current.close();
-      if(name[index]){
-        streamOut(name[index]);
-        index++;
+      if(name[0]){           // check if we are pointing to a letter
+        streamOut(name[0]);  // stream that letter out
+        name++;              // increment pointer to next letter
       } else {
-        if(current.isDirectory()){keyOut('/');}
         keyOut(CARIAGE_RETURN);
-        carosel('n');
         printing = false;
-        return index = 0;
+        return 0;
       }
     }
   }
@@ -244,8 +226,7 @@ byte welcomePASH(byte print){
 
   if(printing){
     if(streamOut(MONITOR_MODE)){
-      char message[] = "PASH";
-      // TODO fix animation hang (space)
+      char message[] = "PASH ";
       if(message[index]){
         streamOut(message[index]);
         index++;
@@ -278,7 +259,7 @@ void PASH(byte cmd){                               // PASH activity toggle
     } //allows cmd to be its own trigger
 
     if      (activeCMD == 'c'){feedback = cat(cmd);}
-    else if (activeCMD == 'n'){feedback = currentFile(cmd);}
+    else if (activeCMD == 'n'){feedback = fileNext(cmd);}
     else if (activeCMD == 'r'){feedback = resumeRead(cmd);}
     else if (activeCMD == 'z'){feedback = welcomePASH(cmd);}
     else {activeCMD = 0;} // cmd not found -> quit
