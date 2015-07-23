@@ -15,7 +15,7 @@ void pagersUp() // to speed up i2c, go into 'fast 400khz I2C' mode
 
 int pagerIntensity(int intensityChange)
 {
-  static int intensity = 4095;  // 0 being off and 4095 being most intense
+  static int intensity = 2000;  // 0 being off and 4095 being most intense
   if(intensityChange){intensity = intensityChange;}
   else{return intensity;} //TODO this function needs work...
 }
@@ -69,7 +69,7 @@ boolean hapticMessage(byte letter, int spacing = 0)
     }
     else if(byte validAnimation = getFrame(0, letter))
     {     // if first frame is availible for this value then it is an animation
-      int adjustedTime = timing / 8 + timing; // calculate total normal timing
+      int adjustedTime = timing / AFRAMES + timing; // calculate total normal timing
       ptimeCheck(adjustedTime/NUMPAGERS);  // set frame durration (total/frames)
       patternVibrate(validAnimation);      // vibrate first frame
       vibActive = true;                    // signal true to a to user message
@@ -111,7 +111,7 @@ boolean animatedProcess(int timing)
   if(ptimeCheck(0))        // if timer has been tripped
   {
     frame++;               // zero frame is accounted for in hapticMessage
-    if(frame == NUMPAGERS) // reached maxium number of frames
+    if(frame == AFRAMES) // reached maxium number of frames
     {
       frame = 0;           // Start back at frame zero
       getFrame(0,TRIGGER); // reset framer
@@ -120,7 +120,7 @@ boolean animatedProcess(int timing)
       return true;         // animation complete
     }
     patternVibrate(getFrame(frame));       // start to play frame
-    int adjustedTime = timing / 8 + timing;// calculate total time
+    int adjustedTime = timing / AFRAMES + timing;// calculate total time
     ptimeCheck(adjustedTime/NUMPAGERS);    // devide time by frames to be played
   }
   return false;
@@ -139,15 +139,15 @@ boolean streamOut(byte letter){  // return true when qued letter is finished
 
 void potentiometer(byte mode)             // Main loop potentiometer check
 {
-  static boolean intensity = true;        // default adjust mode: intensity
+  static boolean intensity = false;        // default adjust mode: intensity
   int potValue = analogRead(ADJUST_POT);  // read current pot value
 
   if(mode == MONITOR_MODE)
   { // check to do adjustments on either intensity or spacing
     if (intensity) {pagerIntensity(map(potValue, 0, 1023, 1500, 3500));}
-    else {hapticMessage(0, map(potValue, 0, 1023, 10, 700));}
+    else {hapticMessage(0, map(potValue, 0, 1023, 10, 1000));}
   }
-  else if (mode == DEFAULT_MODE){potReturn(potValue);} // "flash value"
+  else if (mode == TRIGGER){potReturn(potValue);} // "flash value"
   else if (mode == ADJUST_PWM)        // intensity mode case
   {
     intensity = true;                 // set function to adjust intensity

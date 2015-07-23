@@ -129,20 +129,20 @@ byte charToPattern(byte letter)
 }
 
 //----------Animations---------------
-const byte frameStore[] PROGMEM =
-{// 0 possition identifies type; other possitions are frames
-  128, 64, 32, 16, 8, 4, 2, 1, //spacebar
+const byte frameStore[][AFRAMES] PROGMEM = {
+  {192, 48, 12, 3  }, // SPACEBAR
+  {192,  0, 12, 0  }  // CARIAGE_RETURN
 };
 
-byte getFrame(byte frame, byte type = 0)
-{  //Default No activity value ***;
-  static byte inProgressType = 255; // refers to dementions in the frame store
+byte getFrame(byte frame, byte type = 0){  //Default No activity value 0xff;
+  static byte inProgressType = 0xff; // refers to dementions in the frame store
 
-  if      (type == TRIGGER){inProgressType = 255;}//One is the reset signal
-  else if(type == SPACEBAR){inProgressType = 0;}//first dimention
-  //TODO make room for future animations
-  if (inProgressType == 255){return 0;}
-  else {return pgm_read_byte(&frameStore[frame]);}
+  if      (type == TRIGGER){inProgressType = 0xff;}   //One is the reset signal
+  else if(type == SPACEBAR){inProgressType = 0;}      //first dimention
+  else if(type == CARIAGE_RETURN){inProgressType = 1;}//
+
+  if (inProgressType == 0xff){return 0;}
+  else {return pgm_read_byte(&frameStore[inProgressType][frame]);}
 }
 
 // ----------------- Key presses --------------

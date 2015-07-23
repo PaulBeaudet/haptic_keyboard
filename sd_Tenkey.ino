@@ -15,10 +15,10 @@
 #define MONITOR_BUTTONS 33 // signal to monitor buttons
 #define MONITOR_MODE   0   // goto default behavior for multi-mode functions
 #define TRIGGER        1   // set enter key to press : enterBehavior()
-#define DEFAULT_MODE   1   // potentiometer check
 #define NUMBERS_MODE   2   // outputFilter: Numbers
 #define ADJUST_PWM     2   // potentiometer()
 #define ADJUST_TIMING  3   // potentiometer()
+#define AFRAMES        4   // frames in special char Animations
 
 void setup(){          //setup the needed hardware
   pagersUp();          // pagers.ino: brings vibrating motor interface up
@@ -100,6 +100,6 @@ void macros(byte letter){
   else if(letter == 'j' + SPACEBAR){comboPress(LEFT_ALT,0,0);}
   else if(letter == 'k' + SPACEBAR){keyOut(letter);} // toggle keyboard mode
   else if(letter == 'l' + SPACEBAR){comboPress(LEFT_CTRL|LEFT_ALT,0,0);}
-  else if(letter == 'p' + SPACEBAR){potentiometer(DEFAULT_MODE);} // show value
+  else if(letter == 'p' + SPACEBAR){potentiometer(TRIGGER);} // show value
   else if(letter == 's' + SPACEBAR){potentiometer(ADJUST_TIMING);} // toggle
 }
