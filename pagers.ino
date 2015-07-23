@@ -58,23 +58,19 @@ boolean hapticMessage(byte letter, int spacing = 0)
 
   if(spacing){timing = spacing; return false;} // change timing call
 
-  if(letter)         // given a value comes through: init case
-  {
-    if(byte validPatern = charToPattern(letter))
-    {                              // if the letter converts to a pattern
+  if(letter){        // given a value comes through: init case
+    if(byte validAnimation = getFrame(0, letter)){  // is there a frame one?
+      int adjustedTime = timing / AFRAMES + timing; // total normal timing
+      ptimeCheck(adjustedTime/NUMPAGERS);  // set frame durration (total/frames)
+      patternVibrate(validAnimation);      // vibrate first frame
+      vibActive = true;                    // signal true to a to user message
+      animated = true;                     // This is an animation
+    } else if(byte validPatern = charToPattern(letter)){
       ptimeCheck(timing);          // start the timer for specified durration
       patternVibrate(validPatern); // signal the pagers to vibrate
       vibActive = true;            // signal true for to user message
       animated = false;            // this is a non-animated pattern
     }
-    else if(byte validAnimation = getFrame(0, letter))
-    {     // if first frame is availible for this value then it is an animation
-      int adjustedTime = timing / AFRAMES + timing; // calculate total normal timing
-      ptimeCheck(adjustedTime/NUMPAGERS);  // set frame durration (total/frames)
-      patternVibrate(validAnimation);      // vibrate first frame
-      vibActive = true;                    // signal true to a to user message
-      animated = true;                     // This is an animation
-    }                                      // invalid entries are skipped
     return false; // why bother checking time... we just set it
   }
   //--- 0 or "monitor" case --- given no value passed as letter, check timing

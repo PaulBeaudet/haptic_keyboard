@@ -130,8 +130,13 @@ byte charToPattern(byte letter)
 
 //----------Animations---------------
 const byte frameStore[][AFRAMES] PROGMEM = {
-  {192, 48, 12, 3  }, // SPACEBAR
-  {192,  0, 12, 0  }  // CARIAGE_RETURN
+  {192, 48, 12,  3}, // SPACEBAR
+  {192,  0, 12,  0}, // CARIAGE_RETURN
+  {128,  0,  0,  0}, // period
+  {  0, 24, 24,  0}, // comma
+  {  0,  7,  0,  7}, // exclaimation
+  {165,153,165,153}, // Question
+  {  0, 60,  0, 60} // hyphen
 };
 
 byte getFrame(byte frame, byte type = 0){  //Default No activity value 0xff;
@@ -140,6 +145,11 @@ byte getFrame(byte frame, byte type = 0){  //Default No activity value 0xff;
   if      (type == TRIGGER){inProgressType = 0xff;}   //One is the reset signal
   else if(type == SPACEBAR){inProgressType = 0;}      //first dimention
   else if(type == CARIAGE_RETURN){inProgressType = 1;}//
+  else if(type == '.'){inProgressType = 2;}
+  else if(type == ','){inProgressType = 3;}
+  else if(type == '!'){inProgressType = 4;}
+  else if(type == '?'){inProgressType = 5;}
+  else if(type == '-'){inProgressType = 6;}
 
   if (inProgressType == 0xff){return 0;}
   else {return pgm_read_byte(&frameStore[inProgressType][frame]);}
