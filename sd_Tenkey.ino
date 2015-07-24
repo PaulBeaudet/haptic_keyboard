@@ -25,6 +25,7 @@ void setup(){          //setup the needed hardware
   buttonUp();          // buttons.ino: brings button polling intreface up
   serialInterfaceUp(); // yun/uno/leo.ino: brings serial output interface/s up
   setupSD();           // bring up file system for notes
+  pinMode(COMMAND_PIN, INPUT_PULLUP); // setup pin for command mode =>PASH only
 }
 
 void loop(){
@@ -95,7 +96,7 @@ void feedbackAndRelease(){
 //---- Special macro functions ----
 void macros(byte letter){
   if     (letter == 'a' + SPACEBAR){convertionMode(TRIGGER);} // toggle numbers
-  else if(letter == 'd' + SPACEBAR){PASH(TRIGGER);}
+  //else if(letter == 'd' + SPACEBAR){PASH(TRIGGER);}
   else if(letter == 'i' + SPACEBAR){potentiometer(ADJUST_PWM);} // Toggle to pwm
   else if(letter == 'j' + SPACEBAR){comboPress(LEFT_ALT,0,0);}
   else if(letter == 'k' + SPACEBAR){keyOut(letter);} // toggle keyboard mode

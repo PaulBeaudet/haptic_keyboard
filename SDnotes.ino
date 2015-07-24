@@ -241,37 +241,42 @@ byte welcomePASH(byte print){
 
 // *************** ~ PASH ~ ********************** //
 // "Paul's Awful Shell" or with the toung, which ever you prefer
-void PASH(byte cmd){                               // PASH activity toggle
-  static boolean active = false;                   // is PASH running
-  static byte activeCMD = 'z';                     //
-  static byte previousCMD = 0;                     //
-  if(cmd == TRIGGER){
-    active = !active;
-    if(active){cmd = 'z';}
-  } // first code welcomePASH
+void PASH(byte cmd){                             // PASH activity toggle
+  static boolean active = false;                 // is PASH running
 
-  if(active){
-    byte feedback = 0;
-    if(!activeCMD){
-      activeCMD = cmd;
-      if(cmd && cmd != BACKSPACE){keyOut(BACKSPACE);} // remove entry
-    } //allows cmd to be its own trigger
-
-    if      (activeCMD == 'c'){feedback = cat(cmd);}
-    else if (activeCMD == 'n'){feedback = fileNext(cmd);}
-    else if (activeCMD == 'r'){feedback = resumeRead(cmd);}
-    else if (activeCMD == 'z'){feedback = welcomePASH(cmd);}
-    else {activeCMD = 0;} // cmd not found -> quit
-
-    if(feedback == '|'){previousCMD = activeCMD;} // concurant cmd signal
-    else
-    {
-      if(!feedback && previousCMD){        // given concurant cmd is finised
-        activeCMD = previousCMD;           // resume previous cmd
-        previousCMD = 0;
-      }
-      else{ activeCMD = feedback; }
+  if(digitalRead(COMMAND_PIN)){
+    PASHexe(cmd);
+    active = true;
+  } else {
+    if (active){      // This should in theory only occur once
+      active = false;
+      PASHexe('q');   // signal programs to terminate themselves
     }
-    if(cmd == 'q'){activeCMD = 0;}        // quit signal
-  }// routine is responsible for closing itself
+  }
+}
+
+void PASHexe(byte cmd){
+  static byte activeCMD = 0;
+  static byte previousCMD = 0;
+
+  byte feedback = 0;
+  if(!activeCMD){
+    activeCMD = cmd;
+    if(cmd && cmd != BACKSPACE){keyOut(BACKSPACE);} // remove entry
+  } //allows cmd to be its own trigger
+
+  if      (activeCMD == 'c'){feedback = cat(cmd);}
+  else if (activeCMD == 'n'){feedback = fileNext(cmd);}
+  else if (activeCMD == 'r'){feedback = resumeRead(cmd);}
+  else {activeCMD = 0;} // cmd not found -> quit
+
+  if(feedback == '|'){previousCMD = activeCMD;} // concurant cmd signal
+  else
+  {
+    if(!feedback && previousCMD){ // given concurant cmd is finised
+      activeCMD = previousCMD;    // resume previous cmd
+      previousCMD = 0;
+    }
+    else{ activeCMD = feedback; } // programs are resposible to close gracefully
+  }
 }

@@ -14,4 +14,4 @@
 #define MOUSE_X_PIN A1
 #define MOUSE_Y_PIN A0
 #define ADJUST_POT A7
-
+#define COMMAND_PIN 5
