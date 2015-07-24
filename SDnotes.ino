@@ -136,6 +136,7 @@ byte resumeRead(byte print){
       mark = bookmarkIt(workingFile(MONITOR_MODE), 0);
     }else{
       bookmarkIt(workingFile(MONITOR_MODE), mark);
+      keyOut(CARIAGE_RETURN);
       while(!streamOut(MONITOR_MODE)){;} // block until last letter is done
       return 0;
     }
@@ -164,6 +165,7 @@ byte cat(byte print){
     printing = !printing;
     if(!printing){
       position=0;
+      keyOut(CARIAGE_RETURN);
       while(!streamOut(MONITOR_MODE)){;} // block until last letter is done
       return 0;
     } // handle quit signal
