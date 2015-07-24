@@ -187,7 +187,6 @@ byte cat(byte print){
 
 byte fileNext(byte print){
   static boolean printing = false;
-  //static byte index = 0;
   static char* name = workingFile(MONITOR_MODE);
 
   if(print){
